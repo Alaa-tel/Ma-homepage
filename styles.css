@@ -5,7 +5,7 @@
 }
 
 body {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    background: linear-gradient(135deg, #ffb3d9 0%, #ff69b4 50%, #ff1493 100%);
     min-height: 100vh;
     display: flex;
     justify-content: center;
@@ -42,7 +42,7 @@ body {
     padding: 12px 40px;
     font-size: 1.1rem;
     background-color: white;
-    color: #667eea;
+    color: #ff69b4;
     border: none;
     border-radius: 30px;
     cursor: pointer;
@@ -52,12 +52,84 @@ body {
 }
 
 .contact-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    animation: rainbow-throb 1.5s infinite;
 }
 
 .contact-btn:active {
     transform: translateY(0);
+}
+
+.grass {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 80px;
+    background: linear-gradient(180deg, #228B22 0%, #1a6b1a 100%);
+    z-index: -1;
+}
+
+.cloud {
+    position: fixed;
+    background: white;
+    border-radius: 50px;
+    opacity: 0.7;
+    z-index: 1;
+}
+
+.cloud::before,
+.cloud::after {
+    content: '';
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+}
+
+.cloud::before {
+    width: 50px;
+    height: 50px;
+    top: -25px;
+    left: 10px;
+}
+
+.cloud::after {
+    width: 30px;
+    height: 30px;
+    top: -15px;
+    right: 10px;
+}
+
+.cloud1 {
+    width: 100px;
+    height: 40px;
+    top: 10%;
+    left: -100px;
+    animation: float-left 20s infinite;
+}
+
+.cloud2 {
+    width: 80px;
+    height: 35px;
+    top: 30%;
+    left: -80px;
+    animation: float-left 25s infinite;
+}
+
+.cloud3 {
+    width: 120px;
+    height: 45px;
+    top: 50%;
+    left: -120px;
+    animation: float-left 30s infinite;
+}
+
+@keyframes float-left {
+    0% {
+        left: -150px;
+    }
+    100% {
+        left: 100vw;
+    }
 }
 
 @media (max-width: 600px) {
@@ -73,5 +145,36 @@ body {
     .contact-btn {
         padding: 10px 30px;
         font-size: 1rem;
+    }
+}
+
+@keyframes rainbow-throb {
+    0% {
+        background-color: #ff4444;
+        transform: scale(1);
+    }
+    14% {
+        background-color: #ff9944;
+    }
+    28% {
+        background-color: #ffff66;
+    }
+    42% {
+        background-color: #44ff44;
+        transform: scale(1.1);
+    }
+    56% {
+        background-color: #4444ff;
+    }
+    70% {
+        background-color: #8844aa;
+        transform: scale(1.05);
+    }
+    85% {
+        background-color: #bb44ff;
+    }
+    100% {
+        background-color: #ff4444;
+        transform: scale(1);
     }
 }
