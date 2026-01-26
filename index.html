@@ -13,8 +13,199 @@
     <div class="container">
         <h1 class="greeting">Hello World</h1>
         <img src="test profile.png" alt="Profile photo" class="profile-photo">
+        <!-- Add this where you want the weather widget to appear -->
+        <div id="weather-widget" class="weather-container">
+            <div class="weather-loading">
+                <div class="loading-spinner"></div>
+                <p>Loading weather data...</p>
+            </div>
+        </div>
         <button class="contact-btn">Contact Me</button>
     </div>
     <div class="grass"></div>
+    
+    <script>
+        // Weather Widget JavaScript
+        class WeatherWidget {
+            constructor() {
+                this.container = document.getElementById('weather-widget');
+                this.init();
+            }
+
+            async init() {
+                try {
+                    const position = await this.getUserLocation();
+                    const weatherData = await this.fetchWeatherData(position.coords.latitude, position.coords.longitude);
+                    this.displayWeather(weatherData);
+                } catch (error) {
+                    this.displayError(error.message);
+                }
+            }
+
+            getUserLocation() {
+                return new Promise((resolve, reject) => {
+                    if (!navigator.geolocation) {
+                        reject(new Error('Geolocation is not supported by this browser'));
+                        return;
+                    }
+
+                    navigator.geolocation.getCurrentPosition(
+                        resolve,
+                        (error) => {
+                            switch(error.code) {
+                                case error.PERMISSION_DENIED:
+                                    reject(new Error('Location access denied by user'));
+                                    break;
+                                case error.POSITION_UNAVAILABLE:
+                                    reject(new Error('Location information unavailable'));
+                                    break;
+                                case error.TIMEOUT:
+                                    reject(new Error('Location request timed out'));
+                                    break;
+                                default:
+                                    reject(new Error('An unknown error occurred'));
+                                    break;
+                            }
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 300000 // 5 minutes
+                        }
+                    );
+                });
+            }
+
+            async fetchWeatherData(lat, lon) {
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m&timezone=auto`;
+                
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`Weather API error: ${response.status}`);
+                }
+                
+                return await response.json();
+            }
+
+            displayWeather(data) {
+                const current = data.current_weather;
+                const hourly = data.hourly;
+                
+                // Get current hour index for additional data
+                const currentTime = new Date();
+                const currentHour = currentTime.getHours();
+                
+                this.container.innerHTML = `
+                    <div class="weather-info">
+                        <h3>Current Weather</h3>
+                        <div class="weather-main">
+                            <div class="weather-temp">${Math.round(current.temperature)}°</div>
+                            <div class="weather-icon">
+                                ${this.getWeatherIcon(current.weathercode)}
+                            </div>
+                        </div>
+                        <div class="weather-details">
+                            <div class="weather-detail">
+                                <div class="weather-detail-label">Wind Speed</div>
+                                <div class="weather-detail-value">${current.windspeed} km/h</div>
+                            </div>
+                            <div class="weather-detail">
+                                <div class="weather-detail-label">Humidity</div>
+                                <div class="weather-detail-value">${hourly.relative_humidity_2m[currentHour]}%</div>
+                            </div>
+                            <div class="weather-detail">
+                                <div class="weather-detail-label">Wind Direction</div>
+                                <div class="weather-detail-value">${this.getWindDirection(current.winddirection)}</div>
+                            </div>
+                            <div class="weather-detail">
+                                <div class="weather-detail-label">Updated</div>
+                                <div class="weather-detail-value">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            displayError(message) {
+                this.container.innerHTML = `
+                    <div class="weather-error">
+                        <h3>⚠️ Weather Unavailable</h3>
+                        <p>${message}</p>
+                        <button class="retry-btn" onclick="new WeatherWidget()">Try Again</button>
+                    </div>
+                `;
+            }
+
+            displayLocationInput() {
+                this.container.innerHTML = `
+                    <div class="weather-info">
+                        <h3>Enter Your Location</h3>
+                        <input type="text" id="location-input" placeholder="Enter city name" 
+                               style="padding: 10px; margin: 10px; border-radius: 5px; border: none; width: 80%;">
+                        <button onclick="window.weatherWidget.searchByCity()" class="retry-btn">Get Weather</button>
+                    </div>
+                `;
+            }
+
+            async searchByCity() {
+                const cityName = document.getElementById('location-input').value;
+                if (!cityName) return;
+                
+                try {
+                    // Use geocoding API to get coordinates from city name
+                    const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1`;
+                    const geoResponse = await fetch(geoUrl);
+                    const geoData = await geoResponse.json();
+                    
+                    if (geoData.results && geoData.results.length > 0) {
+                        const location = geoData.results[0];
+                        const weatherData = await this.fetchWeatherData(location.latitude, location.longitude);
+                        this.displayWeather(weatherData);
+                    } else {
+                        throw new Error('City not found');
+                    }
+                } catch (error) {
+                    this.displayError(`Could not find weather for "${cityName}"`);
+                }
+            }
+
+            getWeatherIcon(weatherCode) {
+                // WMO Weather interpretation codes
+                const weatherIcons = {
+                    0: '☀️', // Clear sky
+                    1: '🌤️', // Mainly clear
+                    2: '⛅', // Partly cloudy
+                    3: '☁️', // Overcast
+                    45: '🌫️', // Fog
+                    48: '🌫️', // Depositing rime fog
+                    51: '🌦️', // Light drizzle
+                    53: '🌦️', // Moderate drizzle
+                    55: '🌦️', // Dense drizzle
+                    61: '🌧️', // Slight rain
+                    63: '🌧️', // Moderate rain
+                    65: '🌧️', // Heavy rain
+                    71: '🌨️', // Slight snow
+                    73: '🌨️', // Moderate snow
+                    75: '🌨️', // Heavy snow
+                    95: '⛈️', // Thunderstorm
+                    96: '⛈️', // Thunderstorm with hail
+                    99: '⛈️'  // Thunderstorm with heavy hail
+                };
+                
+                return weatherIcons[weatherCode] || '🌡️';
+            }
+
+            getWindDirection(degrees) {
+                const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+                return directions[Math.round(degrees / 45) % 8];
+            }
+        }
+
+        // Initialize widget when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.weatherWidget = new WeatherWidget();
+        });
+    </script>
 </body>
 </html>
